@@ -1,0 +1,42 @@
+#!/bin/bash
+
+release_file=/etc/os-release
+logfile=/var/log/updater.log
+errorlog=/var/log/updater_errors.log
+
+check_exit_status() {
+	if [ $? -ne 0 ]; then
+		echo "An error occured, please check the $errorlog file."
+	fi
+}
+
+redirect_data_flows() {
+	$1 >> $logfile 2>> errorlog
+}
+
+
+# когда в условии используется существующая команда
+# test (или []) использовать не надо
+# [] - используется когда есть числовые, строковые сравнения (-eq, -lt и др)
+# файловые проверки (-f, -d и др) или логические операции (-a, -o и др.) 
+if grep -qi "Arch" $release_file
+then
+	# host based on Arch, run pacman update
+	redirect_data_flows "sudo pacman -Syu"
+	check_exit_status
+fi
+
+if grep -qi "debian" $release_file || grep -qi "ubuntu" $release_file 
+then
+	# host based on Debian, run apt update
+	redirect_data_flows "sudo apt update -y"
+	# sudo apt dist-upgrade
+	check_exit_status
+fi
+
+if grep -qi "rhel" $release_file
+then
+	# host based on RHEL, run dnf update
+	redirect_data_flows "sudo dnf update"
+	check_exit_status
+fi
